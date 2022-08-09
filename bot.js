@@ -14,7 +14,7 @@ const opts = {
     password: process.env.BOT_TOKEN
   },
   channels: [
-    "heideltrauteuw", "cibonator"
+    "#heideltrauteuw", "#cibonator"
   ]
 };
 
@@ -22,13 +22,16 @@ const client = new tmi.client(opts);
 
 client.on('message', onMessageHandler);
 client.on('connected', onConnectedHandler);
-
+client.on("roomstate",(channel,state)=>{
+  console.log("join channel:" +channel)
+  console.log(state)
+})
 client.connect();
 // https://spacejelly.dev/posts/how-to-create-a-twitch-chat-bot-with-node-js-tmi-js-heroku/
 const regexpCommand = new RegExp(/^!([a-zA-Z0-9]+)(?:\W+)?([a-zA-Z0-9]+)?(?:\W+)?(.*)/);
 
 async function onMessageHandler(channel, context, msg, self) {
-  if (self) { return; }
+  if (self || !msg.startsWith('!')) { return; }
 
   // !edit hey boi
   const [raw, command, commandToEdit, response] = msg.match(regexpCommand);
@@ -46,7 +49,6 @@ async function onMessageHandler(channel, context, msg, self) {
         console.log("Error on command edit " + commandToEdit + " for channel: " + channel);
       } else {
         console.log("Edited command: " + commandToEdit + " for channel: " + channel + " with new response: " + response);
-        client.say(channel, "Edited command: " + commandToEdit + " with new response: " + response);
       }
     });
     return;
@@ -55,14 +57,22 @@ async function onMessageHandler(channel, context, msg, self) {
   Channel.findOne({name:channel},function(err,doc){
     const {response} = doc.commands[command] || {};
     if(response){
-      client.say(channel,response);
+      client.say(channel,response)
+      .then((data)=>{
+        console.log(data);
+      }).catch((err)=>{
+        console.log(err);
+      });
     }else{
+      // if no suiting command is found in the channel's document, search in master document
       Channel.findOne({name:defaultChannel},function(err,doc){
         const {response} = doc.commands[command] || {};
         if(response){
+          console.log("found command in master document");
+          console.log("say: "+response+" in channel: "+channel);
           client.say(channel,response);
         }else{
-          client.say(channel,"command: "+command+" not found");
+          console.log("command: "+command+" not found for channel: " + channel);
         }
       });
     }
