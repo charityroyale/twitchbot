@@ -3,7 +3,11 @@ import { Channel } from './model/Channel'
 import mongoose from 'mongoose'
 import tmi from 'tmi.js'
 
-mongoose.connect(process.env.MONGODB_URI ?? 'MONGODB_URI')
+try {
+	mongoose.connect(process.env.MONGODB_URI ?? 'MONGODB_URI')
+} catch (e) {
+	console.log(`Couldn't connect to mongodb: ${e}`)
+}
 
 const defaultChannel = 'default'
 const editCommand = 'edit'
@@ -24,7 +28,11 @@ client.on('roomstate', (channel, state) => {
 	console.log('join channel:' + channel)
 	console.log(state)
 })
-client.connect()
+try {
+	client.connect()
+} catch (e) {
+	console.log(`Couldn't connect to client: ${e}`)
+}
 // https://spacejelly.dev/posts/how-to-create-a-twitch-chat-bot-with-node-js-tmi-js-heroku/
 const regexpCommand = new RegExp(/^!([a-zA-Z0-9]+)(?:\W+)?([a-zA-Z0-9]+)?(?:\W+)?(.*)/)
 
