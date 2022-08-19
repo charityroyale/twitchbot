@@ -1,14 +1,18 @@
 require('dotenv').config()
-import { Channel } from './model/Channel'
+import { Channel, IChannel } from './model/Channel'
 import mongoose from 'mongoose'
-import tmi from 'tmi.js'
+import tmi, { ChatUserstate } from 'tmi.js'
 
-try {
-	mongoose.connect(process.env.MONGODB_URI ?? 'MONGODB_URI')
-} catch (e) {
-	console.log(`Couldn't connect to mongodb: ${e}`)
+const connectMongoDB = async () => {
+	try {
+		await mongoose.connect(process.env.MONGODB_URI ?? 'MONGODB_URI')
+		console.log('Connected to MongoDB')
+	} catch (e) {
+		console.log(`Couldn't connect to mongodb: ${e}`)
+	}
 }
 
+connectMongoDB()
 const defaultChannel = 'default'
 const editCommand = 'edit'
 
@@ -22,22 +26,14 @@ const opts = {
 
 const client = new tmi.client(opts)
 
-client.on('message', onMessageHandler)
-client.on('connected', onConnectedHandler)
-client.on('roomstate', (channel, state) => {
-	console.log('join channel:' + channel)
-	console.log(state)
-})
-try {
-	client.connect()
-} catch (e) {
-	console.log(`Couldn't connect to client: ${e}`)
+const onConnectedHandler = (addr: string, port: number) => {
+	console.log(`* Connected to ${addr}:${port}`)
 }
+
 // https://spacejelly.dev/posts/how-to-create-a-twitch-chat-bot-with-node-js-tmi-js-heroku/
 const regexpCommand = new RegExp(/^!([a-zA-Z0-9]+)(?:\W+)?([a-zA-Z0-9]+)?(?:\W+)?(.*)/)
 
-// @ts-ignore: TODO: fix typings
-async function onMessageHandler(channel, context, msg, self) {
+const onMessageHandler = async (channel: string, _userstate: ChatUserstate, msg: string, self: boolean) => {
 	if (self || !msg.startsWith('!')) {
 		return
 	}
@@ -63,8 +59,7 @@ async function onMessageHandler(channel, context, msg, self) {
 		return
 	}
 
-	// @ts-ignore: TODO: fix typings
-	Channel.findOne({ name: channel }, function (err, doc) {
+	Channel.findOne({ name: channel }, (_err: Error, doc: IChannel) => {
 		const { response } = doc.commands[command] || {}
 		if (response) {
 			client
@@ -77,8 +72,7 @@ async function onMessageHandler(channel, context, msg, self) {
 				})
 		} else {
 			// if no suiting command is found in the channel's document, search in master document
-			// @ts-ignore: TODO: fix typings
-			Channel.findOne({ name: defaultChannel }, function (err, doc) {
+			Channel.findOne({ name: defaultChannel }, (_err: Error, doc: IChannel) => {
 				const { response } = doc.commands[command] || {}
 				if (response) {
 					console.log('found command in master document')
@@ -92,7 +86,18 @@ async function onMessageHandler(channel, context, msg, self) {
 	})
 }
 
-// @ts-ignore: TODO: fix typings
-function onConnectedHandler(addr, port) {
-	console.log(`* Connected to ${addr}:${port}`)
+const connectClient = async () => {
+	try {
+		await client.connect()
+
+		client.on('message', onMessageHandler)
+		client.on('connected', onConnectedHandler)
+		client.on('roomstate', (channel, state) => {
+			console.log('join channel:' + channel)
+			console.log(state)
+		})
+	} catch (e) {
+		console.log(`Couldn't connect to client: ${e}`)
+	}
 }
+connectClient()

@@ -1,5 +1,9 @@
 import mongoose from 'mongoose'
 
+export interface IChannel extends mongoose.Document {
+	commands: { [key: string]: { response: string } }
+}
+
 const ChannelSchema = new mongoose.Schema(
 	{
 		name: {
@@ -12,4 +16,4 @@ const ChannelSchema = new mongoose.Schema(
 	{ collection: 'channels' }
 )
 
-export const Channel = mongoose.model('Channel', ChannelSchema)
+export const Channel = mongoose.model<IChannel>('Channel', ChannelSchema)
