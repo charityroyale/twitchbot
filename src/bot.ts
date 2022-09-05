@@ -63,11 +63,11 @@ const onMessageHandler = async(channel:string, _userstate: ChatUserstate, msg:st
     };
   }
 
-  Channel.findOne({name:channel},function(err: Error,doc: IChannel){
-    Channel.findOne({name:defaultChannel},function(err2: Error,doc2: IChannel){
+  Channel.findOne({name:channel},function(err: Error,streamerDoc: IChannel){
+    Channel.findOne({name:defaultChannel},function(err2: Error,defaultDoc: IChannel){
       // https://stackoverflow.com/questions/171251/how-can-i-merge-properties-of-two-javascript-objects-dynamically
       // in the case of the same command in both documents, use the one in the streamer's document
-      let commands = {...doc2.commands,...doc.commands};
+      let commands = {...defaultDoc.commands,...streamerDoc.commands};
       const {response} = commands[command] || {};
 
       if(response){
@@ -146,4 +146,5 @@ const connectClient = async () => {
 		console.log(`Couldn't connect to client: ${e}`)
 	}
 }
+
 connectClient()

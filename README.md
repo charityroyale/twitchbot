@@ -30,6 +30,8 @@ TBA
 
 ## how to add/edit/delete a command
 
+Requires you to be a mod/streamer for the channel.
+
 - !add <command\> <response\>
 - !edit <command\> <response\>
 - !delete <command\>
